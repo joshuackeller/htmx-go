@@ -1,0 +1,14 @@
+package components
+
+import "htmx-go/database"
+import "fmt"
+
+templ Todo(todo database.Todo) {
+<div class="flex justify-between" id={ fmt.Sprintf("todo-%s", todo.ID) }>
+    <div>{ todo.Name }</div>
+    <button hx-delete={ fmt.Sprintf("/todos/%s", todo.ID) } hx-target={ fmt.Sprintf("#todo-%s", todo.ID) }
+        hx-swap="delete" class="cursor-pointer">
+        X
+    </button>
+</div>
+}

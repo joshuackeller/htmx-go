@@ -1,0 +1,37 @@
+package templates
+
+import "htmx-go/database"
+import "htmx-go/components"
+
+templ Home(todos []database.Todo) {
+@MainLayout() {
+<div>
+    <form hx-post="/todos" hx-trigger="submit" hx-target="#todos" hx-swap="afterbegin"
+        class="w-full flex-1 my-2 flex gap-x-2">
+        <input id="inputField" type="text" name="Name" class="py-1 px-2 border w-full flex-1 " placeholder="More..." />
+        <button id="test-button" type="submit" class="px-5 bg-indigo-500 text-white disabled:bg-black">
+            Add
+        </button>
+    </form>
+    <div id="todos">
+        for _, todo := range todos {
+        @components.Todo(todo)
+        }
+    </div>
+    <script>
+        document.body.addEventListener("htmx:afterOnLoad", function (event) {
+            // Check if the target is a form
+            if (event.target.tagName.toLowerCase() === "form") {
+                // Clear all input fields in the form
+                event.target.querySelectorAll("input").forEach(function (input) {
+                    if (input.type !== "submit") {
+                        // Don't clear submit buttons
+                        input.value = "";
+                    }
+                });
+            }
+        });
+    </script>
+</div>
+}
+}
