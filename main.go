@@ -16,20 +16,12 @@ import (
 	"gorm.io/gorm"
 )
 
-//  const (
-//  	host     = "localhost"
-//  	port     = 5432
-//  	user     = "root"
-//  	password = "rampart.mailbox"
-//  	dbname   = "todo"
-//  )
-
 const (
-	host     = "ep-hidden-scene-a4k7zue1.us-east-1.aws.neon.tech"
+	host     = "localhost"
 	port     = 5432
-	user     = "joshuackeller"
-	password = "EdxBOce41rKi"
-	dbname   = "neondb"
+	user     = "root"
+	password = ""
+	dbname   = "todo"
 )
 
 func main() {
