@@ -8,23 +8,24 @@ import (
 	"htmx-go/templates"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "root"
-	password = ""
-	dbname   = "todo"
-)
-
 func main() {
+	if os.Getenv("GO_ENV") != "prod" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env")
+		}
+	}
+
 	router := gin.Default()
 	router.HTMLRender = gintemplrenderer.Default
 
@@ -40,15 +41,22 @@ func main() {
 
 	router.Static("/public", "./public")
 
-	// dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disabled", host, port, user, password, dbname)
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
 
 	router.GET("/", func(c *gin.Context) {
-		if err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
+		if db_err != nil {
+			c.String(500, "could not connect to database")
+			return
 		}
+
 		var todos []database.Todo
 		result := db.Order("created_at desc").Find(&todos)
 		if result.Error != nil {
@@ -59,9 +67,15 @@ func main() {
 	})
 
 	router.POST("/todos", func(c *gin.Context) {
+		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+		if db_err != nil {
+			c.JSON(500, gin.H{"error": "could not connect to database"})
+			return
+		}
 		var todo database.Todo
 		if err := c.ShouldBind(&todo); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"error": "could not connect to database"})
 			return
 		}
 
@@ -76,6 +90,12 @@ func main() {
 	})
 
 	router.DELETE("/todos/:id", func(c *gin.Context) {
+		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+		if db_err != nil {
+			c.JSON(500, gin.H{"error": "could not connect to database"})
+			return
+		}
 		id := c.Param("id")
 
 		var todo database.Todo
@@ -90,6 +110,10 @@ func main() {
 		c.HTML(http.StatusOK, "", templates.Other())
 	})
 
-	// router.Run("localhost:8080")
-	router.Run("0.0.0.0:8080")
+	if os.Getenv("GO_ENV") == "prod" {
+		router.Run("0.0.0.0:443")
+	} else {
+		router.Run("0.0.0.0:8080")
+	}
+
 }

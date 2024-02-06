@@ -25,10 +25,10 @@ RUN mv tailwindcss-linux-x64 tailwindcss
 # Build the Go app
 RUN ./tailwindcss -i public/css/input.css -o public/css/output.css --minify
 RUN templ generate
-RUN go build -o main .
+RUN go build -buildvcs=false -o main .
 
 # Expose port 8080 to the outside world
-EXPOSE 8080
+EXPOSE 443
 
 # Command to run the executable
 CMD ["./main"]

@@ -32,7 +32,7 @@ func Home(todos []database.Todo) templ.Component {
 				templ_7745c5c3_Buffer = templ.GetBuffer()
 				defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div><form hx-post=\"/todos\" hx-trigger=\"submit\" hx-target=\"#todos\" hx-swap=\"afterbegin\" class=\"w-full flex-1 my-2 flex gap-x-2\"><input id=\"inputField\" type=\"text\" name=\"Name\" class=\"py-1 px-2 border w-full flex-1 \" placeholder=\"More...\"> <button id=\"test-button\" type=\"submit\" class=\"px-5 bg-indigo-500 text-white disabled:bg-black\">Add</button></form><div id=\"todos\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<script>\n    function clearForm(item) {\n        item?.querySelectorAll(\"input\")?.forEach((input) => input.value = \"\")\n    }\n</script> <div><form hx-post=\"/todos\" hx-trigger=\"submit\" hx-target=\"#todos\" hx-swap=\"afterbegin\" class=\"w-full flex-1 my-2 flex gap-x-2\" hx-on::after-request=\"clearForm(this)\"><input id=\"inputField\" type=\"text\" name=\"Name\" class=\"py-1 px-2 border w-full flex-1 \" placeholder=\"More...\"> <button id=\"test-button\" type=\"submit\" class=\"px-5 bg-indigo-500 text-white\">Add</button></form><div id=\"todos\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -42,7 +42,7 @@ func Home(todos []database.Todo) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</div><script>\n        document.body.addEventListener(\"htmx:afterOnLoad\", function (event) {\n            // Check if the target is a form\n            if (event.target.tagName.toLowerCase() === \"form\") {\n                // Clear all input fields in the form\n                event.target.querySelectorAll(\"input\").forEach(function (input) {\n                    if (input.type !== \"submit\") {\n                        // Don't clear submit buttons\n                        input.value = \"\";\n                    }\n                });\n            }\n        });\n    </script></div>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
