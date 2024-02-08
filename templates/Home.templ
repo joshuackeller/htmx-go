@@ -4,25 +4,31 @@ import "htmx-go/database"
 import "htmx-go/components"
 
 templ Home(todos []database.Todo) {
-@MainLayout() {
-<script>
+	@MainLayout() {
+		<script>
     function clearForm(item) {
         item?.querySelectorAll("input")?.forEach((input) => input.value = "")
     }
 </script>
-<div>
-    <form hx-post="/todos" hx-trigger="submit" hx-target="#todos" hx-swap="afterbegin"
-        class="w-full flex-1 my-2 flex gap-x-2" hx-on::after-request="clearForm(this)">
-        <input id="inputField" type="text" name="Name" class="py-1 px-2 border w-full flex-1 " placeholder="More..." />
-        <button id="test-button" type="submit" class="px-5 bg-indigo-500 text-white">
-            Add
-        </button>
-    </form>
-    <div id="todos">
-        for _, todo := range todos {
-        @components.Todo(todo)
-        }
-    </div>
-</div>
-}
+		<div>
+			<form
+				hx-post="/todos"
+				hx-trigger="submit"
+				hx-target="#todos"
+				hx-swap="afterbegin"
+				class="w-full flex-1 my-2 flex gap-x-2"
+				hx-on::after-request="clearForm(this)"
+			>
+				<input id="inputField" type="text" name="Name" class="py-1 px-2 border w-full flex-1 " placeholder="More..."/>
+				<button id="test-button" type="submit" class="px-5 bg-indigo-500 text-white">
+					Add
+				</button>
+			</form>
+			<div id="todos">
+				for _, todo := range todos {
+					@components.Todo(todo)
+				}
+			</div>
+		</div>
+	}
 }

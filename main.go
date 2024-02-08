@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"htmx-go/components"
 	"htmx-go/database"
@@ -12,11 +15,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	gonanoid "github.com/matoous/go-nanoid/v2"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func main() {
 	if os.Getenv("GO_ENV") != "prod" {
@@ -41,73 +49,152 @@ func main() {
 
 	router.Static("/public", "./public")
 
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbname)
-
 	router.GET("/", func(c *gin.Context) {
-		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-		if db_err != nil {
-			c.String(500, "could not connect to database")
+		conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+		if err != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("unable to conn: %v\n", err)})
 			return
 		}
+		defer conn.Close(context.Background())
 
-		var todos []database.Todo
-		result := db.Order("created_at desc").Find(&todos)
-		if result.Error != nil {
-			log.Println(result.Error)
+		rows, err := conn.Query(context.Background(), "SELECT id, name, created_at FROM todo ORDER BY created_at DESC")
+		if err != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("unable to query: %v\n", err)})
+			return
+		}
+		defer rows.Close()
+
+		todos := []database.Todo{}
+
+		for rows.Next() {
+			var todo database.Todo
+			err := rows.Scan(&todo.ID, &todo.Name, &todo.CreatedAt)
+			if err != nil {
+				c.JSON(400, gin.H{"error": fmt.Sprintf("unable to scan: %v\n", err)})
+				return
+			}
+			todos = append(todos, todo)
 		}
 
+		if rows.Err() != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("unable to rows: %v\n", err)})
+			return
+		}
 		c.HTML(http.StatusOK, "", templates.Home(todos))
 	})
 
 	router.POST("/todos", func(c *gin.Context) {
-		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
-		if db_err != nil {
-			c.JSON(500, gin.H{"error": "could not connect to database"})
-			return
-		}
 		var todo database.Todo
 		if err := c.ShouldBind(&todo); err != nil {
-			c.JSON(400, gin.H{"error": "could not connect to database"})
+			c.JSON(400, gin.H{"error": "could not parse form data"})
 			return
 		}
 
-		id, _ := gonanoid.New()
+		conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+		if err != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("Unable to connect: %v\n", err)})
+			return
+		}
+		defer conn.Close(context.Background())
 
+		id, _ := gonanoid.New()
 		todo.ID = id
 		todo.CreatedAt = time.Now()
 
-		db.Create(&todo)
-
-		c.HTML(http.StatusOK, "", components.Todo(todo))
+		var newTodo database.Todo
+		createErr := conn.QueryRow(
+			context.Background(),
+			`INSERT INTO todo(id, name, created_at)
+            VALUES($1, $2, $3)
+            RETURNING id, name, created_at`,
+			todo.ID, todo.Name, todo.CreatedAt).Scan(&newTodo.ID, &newTodo.Name, &newTodo.CreatedAt)
+		if createErr != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("Unable to create: %v\n", createErr)})
+			return
+		}
+		c.HTML(http.StatusOK, "", components.Todo(newTodo))
 	})
 
 	router.DELETE("/todos/:id", func(c *gin.Context) {
-		db, db_err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-		if db_err != nil {
-			c.JSON(500, gin.H{"error": "could not connect to database"})
-			return
-		}
 		id := c.Param("id")
 
-		var todo database.Todo
+		conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+		if err != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("unable to conn: %v\n", err)})
+			return
+		}
+		defer conn.Close(context.Background())
 
-		todo.ID = id
-
-		db.Delete(&todo)
+		commandTag, err := conn.Exec(context.Background(), "delete from todo where id=$1", id)
+		if err != nil {
+			c.JSON(400, gin.H{"error": fmt.Sprintf("unable to delete: %v\n", err)})
+			return
+		}
+		if commandTag.RowsAffected() != 1 {
+			c.JSON(400, gin.H{"error": "unable to delete"})
+			return
+		}
 		c.Status(http.StatusOK)
 	})
 
 	router.GET("/other", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "", templates.Other())
+	})
+
+	router.GET("/chat", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "", templates.Chat())
+	})
+
+	type MessageObject struct {
+		Message string `json:"message"`
+	}
+
+	// Create a global variable to hold all active connections
+	var clients = make(map[*websocket.Conn]bool)
+
+	router.GET("/chat/ws", func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			return
+		}
+		// defer conn.Close()
+
+		// Add this connection to the list of clients
+		clients[conn] = true
+
+		go func() {
+			defer func() {
+				conn.Close()
+				delete(clients, conn)
+			}()
+			for {
+				_, msgBytes, err := conn.ReadMessage()
+				if err != nil {
+					return
+				}
+
+				var msg MessageObject
+				jsonErr := json.Unmarshal([]byte(string(msgBytes)), &msg)
+				if jsonErr != nil {
+					log.Fatal(err)
+				}
+
+				html := new(bytes.Buffer)
+				templateErr := components.ChatMessage(msg.Message).Render(c.Request.Context(), html)
+				if templateErr != nil {
+					return
+				}
+
+				for client := range clients {
+					if writeMessageErr := client.WriteMessage(websocket.TextMessage, html.Bytes()); writeMessageErr != nil {
+						fmt.Println("ERROR", writeMessageErr)
+						client.Close()
+						delete(clients, client)
+					}
+				}
+			}
+		}()
 	})
 
 	if os.Getenv("GO_ENV") == "prod" {
