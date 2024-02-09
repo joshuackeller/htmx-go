@@ -168,6 +168,7 @@ func main() {
 				conn.Close()
 				delete(clients, conn)
 			}()
+
 			for {
 				_, msgBytes, err := conn.ReadMessage()
 				if err != nil {

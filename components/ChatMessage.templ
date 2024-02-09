@@ -1,0 +1,9 @@
+package components
+
+templ ChatMessage (message string) {
+	<div id="chat-messages" hx-swap-oob="afterbegin">
+		<p>
+			{ message }
+		</p>
+	</div>
+}

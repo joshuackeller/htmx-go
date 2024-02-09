@@ -1,6 +1,6 @@
 package templates
 
-templ MainLayout() {
+templ MainLayout( ) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -16,9 +16,7 @@ templ MainLayout() {
 				<a href="/other">Other</a>
 				<a href="/chat" hx-boost="false">Chat</a>
 			</nav>
-			<div>
-				{ children... }
-			</div>
+			{ children... }
 		</body>
 	</html>
 }

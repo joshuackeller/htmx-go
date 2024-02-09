@@ -1,0 +1,7 @@
+CREATE DATABASE todo;
+
+CREATE TABLE todo (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
