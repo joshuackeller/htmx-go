@@ -198,6 +198,57 @@ func main() {
 		}()
 	})
 
+	router.GET("/advancedChat", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "", templates.AdvancedChat())
+	})
+
+	var advancedClients = make(map[*websocket.Conn]bool)
+
+	router.GET("/advancedChat/ws", func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			return
+		}
+		// defer conn.Close()
+
+		// Add this connection to the list of clients
+		advancedClients[conn] = true
+
+		go func() {
+			defer func() {
+				conn.Close()
+				delete(advancedClients, conn)
+			}()
+
+			for {
+				_, msgBytes, err := conn.ReadMessage()
+				if err != nil {
+					return
+				}
+
+				var msg MessageObject
+				jsonErr := json.Unmarshal([]byte(string(msgBytes)), &msg)
+				if jsonErr != nil {
+					log.Fatal(err)
+				}
+
+				html := new(bytes.Buffer)
+				templateErr := components.ChatMessage(msg.Message).Render(c.Request.Context(), html)
+				if templateErr != nil {
+					return
+				}
+
+				for client := range advancedClients {
+					if writeMessageErr := client.WriteMessage(websocket.TextMessage, html.Bytes()); writeMessageErr != nil {
+						fmt.Println("ERROR", writeMessageErr)
+						client.Close()
+						delete(advancedClients, client)
+					}
+				}
+			}
+		}()
+	})
+
 	if os.Getenv("GO_ENV") == "prod" {
 		router.Run("0.0.0.0:443")
 	} else {

@@ -1,8 +1,5 @@
 package templates
 
-templ Scripts() {
-}
-
 templ Chat () {
 @MainLayout() {
 <div hx-ext="ws" ws-connect="/chat/ws" hx-on::ws-after-message="clearForm(this)">
@@ -17,9 +14,6 @@ templ Chat () {
     <div id="chat-messages" class="space-y-1"></div>
 </div>
 <script type="text/javascript">
-    window.onload = () => {
-        console.log("COOL")
-    }
     function clearForm(item) {
         item?.querySelectorAll("input")?.forEach((input) => input.value = "");
     }

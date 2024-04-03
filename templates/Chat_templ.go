@@ -10,7 +10,7 @@ import "context"
 import "io"
 import "bytes"
 
-func Scripts() templ.Component {
+func Chat() templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -23,33 +23,13 @@ func Scripts() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		if !templ_7745c5c3_IsBuffer {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteTo(templ_7745c5c3_W)
-		}
-		return templ_7745c5c3_Err
-	})
-}
-
-func Chat() templ.Component {
-	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
-		if !templ_7745c5c3_IsBuffer {
-			templ_7745c5c3_Buffer = templ.GetBuffer()
-			defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var2 == nil {
-			templ_7745c5c3_Var2 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var3 := templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var2 := templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 			if !templ_7745c5c3_IsBuffer {
 				templ_7745c5c3_Buffer = templ.GetBuffer()
 				defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div hx-ext=\"ws\" ws-connect=\"/chat/ws\" hx-on::ws-after-message=\"clearForm(this)\"><div><form id=\"chat-form\" class=\"w-full flex-1 my-2 flex gap-x-2\" ws-send><input type=\" text\" name=\"message\" class=\"py-1 px-2 border w-full flex-1 \" placeholder=\"More...\"> <button type=\"submit\" class=\"px-5 bg-indigo-500 text-white\">Send</button></form></div><div id=\"chat-messages\" class=\"space-y-1\"></div></div><script type=\"text/javascript\">\n    window.onload = () => {\n        console.log(\"COOL\")\n    }\n    function clearForm(item) {\n        item?.querySelectorAll(\"input\")?.forEach((input) => input.value = \"\");\n    }\n    document.getElementById('chat-form').addEventListener('submit', function (event) {\n        event.preventDefault();\n    });\n</script> <script src=\"https://unpkg.com/htmx.org/dist/ext/ws.js\"></script>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div hx-ext=\"ws\" ws-connect=\"/chat/ws\" hx-on::ws-after-message=\"clearForm(this)\"><div><form id=\"chat-form\" class=\"w-full flex-1 my-2 flex gap-x-2\" ws-send><input type=\" text\" name=\"message\" class=\"py-1 px-2 border w-full flex-1 \" placeholder=\"More...\"> <button type=\"submit\" class=\"px-5 bg-indigo-500 text-white\">Send</button></form></div><div id=\"chat-messages\" class=\"space-y-1\"></div></div><script type=\"text/javascript\">\n    function clearForm(item) {\n        item?.querySelectorAll(\"input\")?.forEach((input) => input.value = \"\");\n    }\n    document.getElementById('chat-form').addEventListener('submit', function (event) {\n        event.preventDefault();\n    });\n</script> <script src=\"https://unpkg.com/htmx.org/dist/ext/ws.js\"></script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -58,7 +38,7 @@ func Chat() templ.Component {
 			}
 			return templ_7745c5c3_Err
 		})
-		templ_7745c5c3_Err = MainLayout().Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = MainLayout().Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
